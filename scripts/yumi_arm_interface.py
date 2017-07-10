@@ -38,7 +38,7 @@ class YumiArm(object):
         #initialize also joint position and velocity limits and default values
         self._rate = rospy.Rate(200) #the states are published at 500
         self._ee_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
-        self._vel_KP = 0.5
+        self._vel_KP = 0.1 #keep it low or the robot will block because it exceeds the force
 
         #initialize the kinematic solvers
         self.initialize_kinematic_solvers()
