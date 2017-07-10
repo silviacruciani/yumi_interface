@@ -43,6 +43,9 @@ class YumiArm(object):
         #initialize the kinematic solvers
         self.initialize_kinematic_solvers()
 
+        #set the stop on shutdown for safety
+        rospy.on_shutdown(self.stop)
+
         #initialize the ros subsciber to keep track of the current joint state
         self._ros_topic_joint_states = rospy.get_param('/yumi/velocity_control/ros_topic_joint_states_name', '/yumi/joint_states')
         self._subscriber = rospy.Subscriber(self._ros_topic_joint_states, JointState, self.joint_state_callback)
@@ -206,7 +209,7 @@ class YumiArm(object):
     def get_joint_positions(self):
         return self._joint_positions
 
-    """this function return the joint position for the specified joint"""
+    """this function returns the joint position for the specified joint"""
     def get_joint_position(self, idx, redefine_idx = True):
         if redefine_idx:
             idx = self.redefine_index(idx)
@@ -271,7 +274,7 @@ class YumiArm(object):
 
         return q_dot
 
-    """this function return the jacobian of the current arm configuration (as np array)"""
+    """this function returns the jacobian of the current arm configuration (as np array)"""
     def get_jacobian(self):
         #initialize seed array from current joint states
         seed_array = PyKDL.JntArray(len(self._joint_positions))
