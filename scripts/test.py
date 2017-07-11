@@ -7,6 +7,10 @@
 """
 
 import rospy
+
+import sys
+sys.path.insert(0, '../src/yumi_interface')
+
 from yumi_arm_interface import YumiArm
 
 if __name__ == '__main__':
@@ -19,7 +23,7 @@ if __name__ == '__main__':
     pose = [0.5, -0.2, 0.4, 0.0, 1.0, 0.0, 0.0]
     print("setting right end-effector to pose: ", pose)
     right_arm.move_ee_to_pose(pose)
-    print ("reached: ", right_arm.get_forward_kinematics())
+    print ("reached: ", right_arm.get_forward_position_kinematics())
     rospy.sleep(2.0)
     print("Setting horizontal linear velocity")
     r = rospy.Rate(100)
@@ -28,4 +32,4 @@ if __name__ == '__main__':
         r.sleep()
     right_arm.stop()
     right_arm.stop()# do twice just in case
-    print ("reached: ", right_arm.get_forward_kinematics())
+    print ("reached: ", right_arm.get_forward_position_kinematics())
