@@ -13,6 +13,7 @@ import PyKDL
 from kdl_parser import kdl_tree_from_urdf_model
 from urdf_parser_py.urdf import URDF
 import numpy as np
+from yumi_hw.srv import * #using this for grasping
 
 class YumiArm(object):
     """docstring for YumiArm"""
@@ -28,9 +29,33 @@ class YumiArm(object):
         self._publishers = [None, None, None, None, None, None, None]
         self.initialize_ros_publishers()
 
+        #now initialize the clients to open and close the gripper and wait for the servers to come up
+        self._open_service_name = rospy.get_param('/yumi/gripper_server_open_name', '/yumi/yumi_gripper/release_grasp')
+        self._close_service_name = rospy.get_param('/yumi/gripper_server_close_name', '/yumi/yumi_gripper/do_grasp')
+
+        rospy.loginfo('Waiting for gripper servers')
+        rospy.wait_for_service(self._open_service_name, 5.0)
+        rospy.wait_for_service(self._close_service_name, 5.0)
+
+        self._open_service = rospy.ServiceProxy(self._open_service_name, YumiGrasp)
+        self._close_service = rospy.ServiceProxy(self._close_service_name, YumiGrasp)
+
+
+        #and the variables for the current position and gripper id
+        self._gripper_position = 0.0 #in meters
+        self._gripper_id = 1
+        if self._arm_name == 'r':
+            self._gripper_id = 2
+
         #initialize the joint values to 0
         self._joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self._joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        #store a neutral join position
+        self._joint_neutral = [-1.4, -2.1, 0.74, 0.3, 0.0, 0.0, 0.0]
+        if self._arm_name == 'r':
+            self._joint_neutral[0] = -self._joint_neutral[0]
+            self._joint_neutral[2] = -self._joint_neutral[2]
 
         #publish zero velocities 
         self.set_joint_velocities([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -123,6 +148,9 @@ class YumiArm(object):
                 index = self.redefine_index(idx) #put the joint positions according to the order in the kinematic chain
                 self._joint_positions[index] = positions[i]
                 self._joint_velocities[index] = velocities[i]
+            #check if it is the gripper variable
+            elif s[8] == self._arm_name:
+                self._gripper_position = positions[i]
         #update the forward kinematics
         self.update_ee_state(self._joint_positions, self._joint_velocities)
 
@@ -334,15 +362,25 @@ class YumiArm(object):
 
     """this function moves to a neutral joint position"""
     def move_to_neutral(self, timeout = 20.0):
-        pass
+        self.set_joint_positions(self._joint_neutral, timeout = timeout)
 
     """this function closes the gripper"""
     def close_gripper(self):
-        pass
+        try:
+            self._close_service(self._gripper_id)
+        except rospy.ServiceException, e:
+            rospy.logerr("Close gripper service call failed: %s", %e)
 
     """this function opens the gripper"""
     def open_gripper(self):
-        pass
+        try:
+            self._open_service(self._gripper_id)
+        except rospy.ServiceException, e:
+            rospy.logerr("Open gripper service call failed: %s", %e)
+
+    """this function returns the distance of the gripper's fingers"""
+    def get_finger_distance(self):
+        return self._gripper_position
 
 
 
