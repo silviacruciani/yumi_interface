@@ -7,7 +7,8 @@
 """
 
 import sys
-sys.path.insert(0, '../src/yumi_interface')
+import os
+sys.path.insert(0, os.getcwd() + '/../src/yumi_interface')
 import rospy
 import rospkg
 import actionlib
@@ -29,7 +30,7 @@ class PushAction(object):
         #for debug purposes
         #self._broadcaster = tf.TransformBroadcaster()
         #tf listener
-        self._tf_listener = TransformListener()
+        self._tf_listener = tf.TransformListener()
 
         #manipulation interface
         self._manipulation_interface = dict()
@@ -48,8 +49,8 @@ class PushAction(object):
 
         #move both arms to the neutral position (assume no collision check is needed)
         #find a neutral position
-        self._manipulation_interface['right'].move_to_neutral(5.0)
-        self._manipulation_interface['left'].move_to_neutral(5.0)
+        self._manipulation_interface['right'].move_to_neutral(10.0)
+        self._manipulation_interface['left'].move_to_neutral(10.0)
 
         #finally, start the action server
         self._action_name = name
@@ -123,7 +124,7 @@ class PushAction(object):
  
         def joint_error():
             diff = 0
-            for j, a in target_joints:
+            for j, a in enumerate(target_joints):
                 diff = diff + abs(a - self._manipulation_interface[arm].get_joint_position(j, False)) 
             return diff 
 
@@ -306,7 +307,8 @@ class PushAction(object):
         rospy.loginfo('approaching the target')
 
         #send the target joints
-        success = self.reach_joints(target_joints, arm)
+        #success = self.reach_joints(target_joints, arm)
+        self._manipulation_interface[arm].set_joint_positions(target_joints)
 
         if not success:
             #the action settings have already been solved. No need to continue

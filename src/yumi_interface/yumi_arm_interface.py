@@ -34,8 +34,11 @@ class YumiArm(object):
         self._close_service_name = rospy.get_param('/yumi/gripper_server_close_name', '/yumi/yumi_gripper/do_grasp')
 
         rospy.loginfo('Waiting for gripper servers')
-        rospy.wait_for_service(self._open_service_name, 5.0)
-        rospy.wait_for_service(self._close_service_name, 5.0)
+        try:
+            rospy.wait_for_service(self._open_service_name, 1.0)
+            rospy.wait_for_service(self._close_service_name, 1.0)
+        except rospy.ROSException as e:
+            rospy.logerr("Failed in contacting gripper servers: %s", str(e))
 
         self._open_service = rospy.ServiceProxy(self._open_service_name, YumiGrasp)
         self._close_service = rospy.ServiceProxy(self._close_service_name, YumiGrasp)
@@ -64,7 +67,7 @@ class YumiArm(object):
         self._rate = rospy.Rate(200) #the states are published at 500
         self._ee_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
         self._ee_twist = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self._vel_KP = 0.1 #keep it low or the robot will block because it exceeds the force
+        self._vel_KP = 0.5 #keep it low or the robot will block because it exceeds the force
         self._joint_threshold = 0.01
 
         #initialize the kinematic solvers
@@ -368,15 +371,15 @@ class YumiArm(object):
     def close_gripper(self):
         try:
             self._close_service(self._gripper_id)
-        except rospy.ServiceException, e:
-            rospy.logerr("Close gripper service call failed: %s", %e)
+        except rospy.ServiceException as e:
+            rospy.logerr("Close gripper service call failed: %s", str(e))
 
     """this function opens the gripper"""
     def open_gripper(self):
         try:
             self._open_service(self._gripper_id)
-        except rospy.ServiceException, e:
-            rospy.logerr("Open gripper service call failed: %s", %e)
+        except rospy.ServiceException as e:
+            rospy.logerr("Open gripper service call failed: %s", str(e))
 
     """this function returns the distance of the gripper's fingers"""
     def get_finger_distance(self):
