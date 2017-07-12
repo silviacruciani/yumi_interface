@@ -28,7 +28,7 @@ class PushAction(object):
         self._result = yumi_interface.msg.PushResult()
 
         #for debug purposes
-        self._broadcaster = tf.TransformBroadcaster()
+        #self._broadcaster = tf.TransformBroadcaster()
         #tf listener
         self._tf_listener = tf.TransformListener()
 
@@ -319,7 +319,7 @@ class PushAction(object):
         orientation_quat = tf.transformations.quaternion_from_matrix(mat1)
 
 
-        self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
+        #self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
         target_joints = self._manipulation_interface[arm].get_inverse_kinematics([position[0], position[1], position[2], orientation_quat[0], orientation_quat[1], orientation_quat[2], orientation_quat[3]])
         if target_joints is None:
             self.no_ik_solution_reaction(arm)
@@ -339,7 +339,7 @@ class PushAction(object):
         
         velocity = np.array([0, 0, -0.1, 0, 0, 0]) #no twist, move vertically
 
-        self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
+        #self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
 
         rospy.loginfo('approaching the push start point')
         
@@ -350,7 +350,7 @@ class PushAction(object):
 
         #now that we finally reached our destination, we can do the push action
         vel = rospy.get_param(self._action_name + '/velocity_magnitude', 0.1)
-        velocity = vel*np.array(normalized_direction + (0, 0, 0)) #impose no twist
+        velocity = vel*np.append(np.array(normalized_direction), np.array([0, 0, 0])) #impose no twist
         rospy.loginfo("sending velocity: %s", str(velocity))
 
         rospy.loginfo('begin the push action')
