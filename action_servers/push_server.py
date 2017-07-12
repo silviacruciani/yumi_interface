@@ -7,10 +7,10 @@
 """
 
 import sys
-import os
-sys.path.insert(0, os.getcwd() + '/../src/yumi_interface')
 import rospy
 import rospkg
+
+sys.path.insert(0, rospkg.RosPack.get_path(rospkg.RosPack(), 'yumi_interface') + '/src/yumi_interface')
 import actionlib
 import yumi_interface.msg
 
@@ -28,7 +28,7 @@ class PushAction(object):
         self._result = yumi_interface.msg.PushResult()
 
         #for debug purposes
-        #self._broadcaster = tf.TransformBroadcaster()
+        self._broadcaster = tf.TransformBroadcaster()
         #tf listener
         self._tf_listener = tf.TransformListener()
 
@@ -49,6 +49,13 @@ class PushAction(object):
 
         #move both arms to the neutral position (assume no collision check is needed)
         #find a neutral position
+        self._right_neutral = [-0.23, -1.82, -1.0, 0.0, 2.0, -1.4, 0.0]
+        self._left_neutral = [0.3, -2.0, 0.8, 0.0, 1.0, 1.6, -0.5]
+
+        self._manipulation_interface['right']._joint_neutral = self._right_neutral
+        self._manipulation_interface['left']._joint_neutral = self._left_neutral
+
+        #ovverride default neutral position
         self._manipulation_interface['right'].move_to_neutral(10.0)
         self._manipulation_interface['left'].move_to_neutral(10.0)
 
@@ -212,7 +219,7 @@ class PushAction(object):
                 self._manipulation_interface[arm].stop()
                 #go to old joint positions, then react to preemption            
                 self._manipulation_interface[arm].set_joint_positions(old_joint_positions)
-                self.preemption_reaction()
+                self.preemption_reaction(arm)
                 self._as.set_preempted()
                 success = False
                 return success
@@ -259,6 +266,12 @@ class PushAction(object):
             if self._as.is_active():
                 self._as.set_aborted(self._result)
             return
+        push_direction = np.array(push_direction)
+        if np.linalg.norm(push_direction) < 0.000001:
+            rospy.logerr('%s :Invalid push direction', self._action_name)
+            if self._as.is_active():
+                self._as.set_aborted(self._result)
+            return
 
         #store the necessary tfs
         target_position, target_orientation = self.get_pose(target)
@@ -275,16 +288,24 @@ class PushAction(object):
         rot_mat   = tf.transformations.quaternion_matrix(target_orientation)
         mat3 = np.dot(trans_mat, rot_mat) #from target frame to world
 
+        #transform the approach direction into the target frame
+        mat3_inverse = np.linalg.inv(mat3) #from world to target
+        normalized_direction = push_direction/np.linalg.norm(push_direction)
+        transformed_direction = np.dot(mat3_inverse, - 0.1 * np.append(normalized_direction, 0)) #default is 10 cm displacement
         
         #transform to get the second approach pose:
-        trans_mat = tf.transformations.translation_matrix([0.0, 0.0, 0.1]) #10cm displacement on z and -10 on y (due to non rectified image)
-        rot_mat   = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on x
+        #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
+        trans_mat = tf.transformations.translation_matrix([transformed_direction[0], 0.1, transformed_direction[2]])
+        beta = np.arctan2(transformed_direction[0], transformed_direction[2])
+        rot_mat1 = tf.transformations.euler_matrix(0, beta, 0)
+        rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on y
+        rot_mat = np.dot(rot_mat1, rot_mat2)
         mat2 = np.dot(trans_mat, rot_mat) #from approach 2 to target frame
 
         mat2 = np.dot(mat3, mat2) #from approach 2 to world
 
         #transform to get the first approach pose: (somehow make these all parameters, or configurable)
-        trans_mat = tf.transformations.translation_matrix([0.0, 0.0, -0.1]) #-10cm displacement on z 
+        trans_mat = tf.transformations.translation_matrix([0.0, 0.0, -0.1]) #-10cm displacement on z
         rot_mat   = tf.transformations.quaternion_matrix([0.0, 0.0,  0.0,  1.0]) #no rotation
         mat1 = np.dot(trans_mat, rot_mat) #from approach 1 to approach 2 frame
 
@@ -298,7 +319,7 @@ class PushAction(object):
         orientation_quat = tf.transformations.quaternion_from_matrix(mat1)
 
 
-        #self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
+        self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
         target_joints = self._manipulation_interface[arm].get_inverse_kinematics([position[0], position[1], position[2], orientation_quat[0], orientation_quat[1], orientation_quat[2], orientation_quat[3]])
         if target_joints is None:
             self.no_ik_solution_reaction(arm)
@@ -318,7 +339,7 @@ class PushAction(object):
         
         velocity = np.array([0, 0, -0.1, 0, 0, 0]) #no twist, move vertically
 
-        #self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
+        self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
 
         rospy.loginfo('approaching the push start point')
         
@@ -329,8 +350,8 @@ class PushAction(object):
 
         #now that we finally reached our destination, we can do the push action
         vel = rospy.get_param(self._action_name + '/velocity_magnitude', 0.1)
-        velocity = vel*np.array(push_direction + (0, 0, 0)) #impose no twist
-        rospy.loginfo("sending velocity: ")
+        velocity = vel*np.array(normalized_direction + (0, 0, 0)) #impose no twist
+        rospy.loginfo("sending velocity: %s", str(velocity))
 
         rospy.loginfo('begin the push action')
 
