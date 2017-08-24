@@ -67,7 +67,7 @@ class YumiArm(object):
         self._rate = rospy.Rate(200) #the states are published at 500
         self._ee_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
         self._ee_twist = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self._vel_KP = 0.5 #keep it low or the robot will block because it exceeds the force
+        self._vel_KP = 0.2 #keep it low or the robot will block because it exceeds the force
         self._joint_threshold = 0.01
 
         #initialize the kinematic solvers

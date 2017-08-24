@@ -297,7 +297,7 @@ class PushAction(object):
         #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
         trans_mat = tf.transformations.translation_matrix([transformed_direction[0], transformed_direction[1], 0.1])
         beta = np.arctan2(transformed_direction[0], -transformed_direction[1])
-        rot_mat1 = tf.transformations.euler_matrix(0, beta, 0)
+        rot_mat1 = tf.transformations.euler_matrix(0, 0, beta)
         rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.70710678, 0.0,  0.0]) #90 deg rotation on 
         #rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on 
         rot_mat = np.dot(rot_mat1, rot_mat2)
