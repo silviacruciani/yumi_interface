@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-    This file contains the push action for baxter
+    This file contains the push action for yumi
 
     @author: Silvia Cruciani (cruciani@kth.se)
 """
@@ -28,7 +28,7 @@ class PushAction(object):
         self._result = yumi_interface.msg.PushResult()
 
         #for debug purposes
-        #self._broadcaster = tf.TransformBroadcaster()
+        self._broadcaster = tf.TransformBroadcaster()
         #tf listener
         self._tf_listener = tf.TransformListener()
 
@@ -72,7 +72,7 @@ class PushAction(object):
 
     """this function reads the target pose from tf"""
     def get_pose(self, obj_name):
-        if self._tf_listener.frameExists(self._base_frame) and self._tf_listener.frameExists(obj_name):
+        if self._tf_listener.frameExists(obj_name):
             t = rospy.Time(0)
             try:
                 position, quaternion = self._tf_listener.lookupTransform(self._base_frame, obj_name, rospy.Time(0))
@@ -295,10 +295,11 @@ class PushAction(object):
         
         #transform to get the second approach pose:
         #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
-        trans_mat = tf.transformations.translation_matrix([transformed_direction[0], 0.1, transformed_direction[2]])
-        beta = np.arctan2(transformed_direction[0], transformed_direction[2])
+        trans_mat = tf.transformations.translation_matrix([transformed_direction[0], transformed_direction[1], 0.1])
+        beta = np.arctan2(transformed_direction[0], -transformed_direction[1])
         rot_mat1 = tf.transformations.euler_matrix(0, beta, 0)
-        rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on y
+        rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.70710678, 0.0,  0.0]) #90 deg rotation on 
+        #rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on 
         rot_mat = np.dot(rot_mat1, rot_mat2)
         mat2 = np.dot(trans_mat, rot_mat) #from approach 2 to target frame
 
@@ -319,7 +320,7 @@ class PushAction(object):
         orientation_quat = tf.transformations.quaternion_from_matrix(mat1)
 
 
-        #self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
+        self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
         target_joints = self._manipulation_interface[arm].get_inverse_kinematics([position[0], position[1], position[2], orientation_quat[0], orientation_quat[1], orientation_quat[2], orientation_quat[3]])
         if target_joints is None:
             self.no_ik_solution_reaction(arm)
@@ -339,7 +340,7 @@ class PushAction(object):
         
         velocity = np.array([0, 0, -0.1, 0, 0, 0]) #no twist, move vertically
 
-        #self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
+        self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
 
         rospy.loginfo('approaching the push start point')
         
