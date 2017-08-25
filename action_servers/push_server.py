@@ -291,11 +291,11 @@ class PushAction(object):
         #transform the approach direction into the target frame
         mat3_inverse = np.linalg.inv(mat3) #from world to target
         normalized_direction = push_direction/np.linalg.norm(push_direction)
-        transformed_direction = np.dot(mat3_inverse, - 0.1 * np.append(normalized_direction, 0)) #default is 10 cm displacement
+        transformed_direction = np.dot(mat3_inverse, - 0.2 * np.append(normalized_direction, 0)) #default is 15 cm displacement
         
         #transform to get the second approach pose:
         #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
-        trans_mat = tf.transformations.translation_matrix([transformed_direction[0], transformed_direction[1], 0.1])
+        trans_mat = tf.transformations.translation_matrix([transformed_direction[0], transformed_direction[1], 0.12])
         beta = np.arctan2(transformed_direction[0], -transformed_direction[1])
         rot_mat1 = tf.transformations.euler_matrix(0, 0, beta)
         rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.70710678, 0.0,  0.0]) #90 deg rotation on 
@@ -306,7 +306,7 @@ class PushAction(object):
         mat2 = np.dot(mat3, mat2) #from approach 2 to world
 
         #transform to get the first approach pose: (somehow make these all parameters, or configurable)
-        trans_mat = tf.transformations.translation_matrix([0.0, 0.0, -0.1]) #-10cm displacement on z
+        trans_mat = tf.transformations.translation_matrix([0.0, 0.0, -0.2]) #-20cm displacement on z
         rot_mat   = tf.transformations.quaternion_matrix([0.0, 0.0,  0.0,  1.0]) #no rotation
         mat1 = np.dot(trans_mat, rot_mat) #from approach 1 to approach 2 frame
 
@@ -318,6 +318,9 @@ class PushAction(object):
         #get the target joints for the first approach pose:
         position = tf.transformations.translation_from_matrix(mat1)
         orientation_quat = tf.transformations.quaternion_from_matrix(mat1)
+
+        #store the first approach z for retraction
+        retract_z = position[2]
 
 
         self._broadcaster.sendTransform(position, orientation_quat, rospy.Time.now(), "approach_1", "world")
@@ -371,8 +374,8 @@ class PushAction(object):
 
         velocity = np.array([0, 0, 0.1, 0, 0, 0]) #no twist, move vertically
         #check why it has to be recomputed
-        retract_z = self._manipulation_interface[arm].get_forward_position_kinematics()[2]
-        success = self.approach(velocity, arm, retract_z + 0.05, 'z') #go up 5 cm
+        #retract_z = self._manipulation_interface[arm].get_forward_position_kinematics()[2]
+        success = self.approach(velocity, arm, retract_z + 0.0, 'z') #go up 5 cm
         if not success:
             return
         
