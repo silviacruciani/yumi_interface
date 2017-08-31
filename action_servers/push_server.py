@@ -261,6 +261,7 @@ class PushAction(object):
         target = goal.target
         arm = goal.arm
         push_direction = goal.direction
+        approach_distance = goal.distance
         if not (arm =='right' or arm == 'left'):
             rospy.logerr('%s :Invalid arm name', self._action_name)
             if self._as.is_active():
@@ -291,7 +292,7 @@ class PushAction(object):
         #transform the approach direction into the target frame
         mat3_inverse = np.linalg.inv(mat3) #from world to target
         normalized_direction = push_direction/np.linalg.norm(push_direction)
-        transformed_direction = np.dot(mat3_inverse, - 0.2 * np.append(normalized_direction, 0)) #default is 20 cm displacement
+        transformed_direction = np.dot(mat3_inverse, - approach_distance * np.append(normalized_direction, 0)) 
         
         #transform to get the second approach pose:
         #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
