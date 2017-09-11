@@ -1,0 +1,11 @@
+#goal definition
+string target #name of the target frame
+string arm #arm name for baxter (right or left)
+float32[] direction #a 3d vector with the cartesian direction of the push 
+float32 distance #the approach distance
+---
+#result definition
+int32 status
+---
+#feedback
+int32 status
