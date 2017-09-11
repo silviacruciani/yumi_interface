@@ -18,4 +18,13 @@ The inputs can follow this ordering or the default numbering, and a bool variabl
 - set_ee_velocity(velocity): sets the desired cartesian velocity for the end-effector
 - get_forward_kinematics(): returns the current pose of the end-effector
 
+### Actionlib
+
+The push action approaches a desired point and pushes on the given direction. (Rotate action is under development).
+<br />
+Inputs: 
+- target frame (tf) 
+- arm to use (left, right)
+- push direction (3d vector)
+- approach distance before pushing
 
