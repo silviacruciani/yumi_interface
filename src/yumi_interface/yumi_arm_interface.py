@@ -81,7 +81,7 @@ class YumiArm(object):
         self._subscriber = rospy.Subscriber(self._ros_topic_joint_states, JointState, self.joint_state_callback)
 
     """this function sets the joint threshold"""
-    def set_joint_postion_threshold(self, th):
+    def set_joint_position_threshold(self, th):
         self._joint_threshold = th
 
     """this function returns the correct index in the list, which is different than the naming convention"""

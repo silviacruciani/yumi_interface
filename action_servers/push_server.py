@@ -44,8 +44,8 @@ class PushAction(object):
         self._joint_stop_threshold = rospy.get_param(name +'/joint_stop_threshold', 0.005)
 
         #set the threshold for the joint position/velocity control
-        self._manipulation_interface['right'].set_joint_postion_threshold(0.01)
-        self._manipulation_interface['left'].set_joint_postion_threshold(0.01)
+        self._manipulation_interface['right'].set_joint_position_threshold(0.01)
+        self._manipulation_interface['left'].set_joint_position_threshold(0.01)
 
         #move both arms to the neutral position (assume no collision check is needed)
         #find a neutral position
