@@ -122,18 +122,18 @@ class PushAction(object):
         success = True
         #now move to the target joints
         cmd = self._manipulation_interface[arm].get_joint_positions()
-   
-        def filtered_cmd(): 
-            # First Order Filter - 0.2 Hz Cutoff 
-            for i, target in enumerate(target_joints): 
-                cmd[i] = 0.012488 * target + 0.98751 * cmd[i] 
-            return cmd 
- 
+
+        def filtered_cmd():
+            # First Order Filter - 0.2 Hz Cutoff
+            for i, target in enumerate(target_joints):
+                cmd[i] = 0.012488 * target + 0.98751 * cmd[i]
+            return cmd
+
         def joint_error():
             diff = 0
             for j, a in enumerate(target_joints):
-                diff = diff + abs(a - self._manipulation_interface[arm].get_joint_position(j, False)) 
-            return diff 
+                diff = diff + abs(a - self._manipulation_interface[arm].get_joint_position(j, False))
+            return diff
 
         joint_diff = joint_error()
 
@@ -205,7 +205,7 @@ class PushAction(object):
             retract = endpoint_position[1] < final_approach_limit
         else:
             retract = endpoint_position[2] < final_approach_limit
-        
+
         self._manipulation_interface[arm].set_ee_velocity(velocity)
         reached = False
         count = 0
@@ -217,7 +217,7 @@ class PushAction(object):
             #check for preemption
             if self._as.is_preempt_requested():
                 self._manipulation_interface[arm].stop()
-                #go to old joint positions, then react to preemption            
+                #go to old joint positions, then react to preemption
                 self._manipulation_interface[arm].set_joint_positions(old_joint_positions)
                 self.preemption_reaction(arm)
                 self._as.set_preempted()
@@ -248,7 +248,7 @@ class PushAction(object):
             self._r.sleep()
 
         return success
-        
+
     """this is where everything happens"""
     def execute_cb(self, goal):
         # helper variables
@@ -292,15 +292,15 @@ class PushAction(object):
         #transform the approach direction into the target frame
         mat3_inverse = np.linalg.inv(mat3) #from world to target
         normalized_direction = push_direction/np.linalg.norm(push_direction)
-        transformed_direction = np.dot(mat3_inverse, - approach_distance * np.append(normalized_direction, 0)) 
-        
+        transformed_direction = np.dot(mat3_inverse, - approach_distance * np.append(normalized_direction, 0))
+
         #transform to get the second approach pose:
         #trans_mat = tf.transformations.translation_matrix([0.0, 0.1, 0.1]) #10cm displacement on z and 10 on y (gripper base, not fingertips)
         trans_mat = tf.transformations.translation_matrix([transformed_direction[0], transformed_direction[1], 0.15])
         beta = np.arctan2(transformed_direction[0], -transformed_direction[1])
         rot_mat1 = tf.transformations.euler_matrix(0, 0, beta)
-        rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.70710678, 0.0,  0.0]) #90 deg rotation on 
-        #rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on 
+        rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.70710678, 0.0,  0.0]) #90 deg rotation on
+        #rot_mat2 = tf.transformations.quaternion_matrix([0.70710678, 0.0,  0.0,  0.70710678]) #90 deg rotation on
         rot_mat = np.dot(rot_mat1, rot_mat2)
         mat2 = np.dot(trans_mat, rot_mat) #from approach 2 to target frame
 
@@ -341,13 +341,13 @@ class PushAction(object):
             return
 
         #the first part of the execution succeeded. Now we need to approach and then push
-        
+
         velocity = np.array([0, 0, -0.1, 0, 0, 0]) #no twist, move vertically
 
         self._broadcaster.sendTransform(tf.transformations.translation_from_matrix(mat2), tf.transformations.quaternion_from_matrix(mat2), rospy.Time.now(), "approach_2", "world")
 
         rospy.loginfo('approaching the push start point')
-        
+
         #send velocity
         success = self.approach(velocity, arm, tf.transformations.translation_from_matrix(mat2)[2], 'z') #the approach motion is along the z direction in this case
         if not success:
@@ -379,10 +379,10 @@ class PushAction(object):
         success = self.approach(velocity, arm, retract_z + 0.0, 'z') #go up 5 cm
         if not success:
             return
-        
+
         #send to neutral
         self._manipulation_interface[arm].move_to_neutral()
-          
+
         self._result.status = 1 #check which one is success
         rospy.loginfo('%s: Succeeded' % self._action_name)
         self._as.set_succeeded()

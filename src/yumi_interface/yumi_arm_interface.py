@@ -60,7 +60,7 @@ class YumiArm(object):
             self._joint_neutral[0] = -self._joint_neutral[0]
             self._joint_neutral[2] = -self._joint_neutral[2]
 
-        #publish zero velocities 
+        #publish zero velocities
         self.set_joint_velocities([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         #initialize also joint position and velocity limits and default values
@@ -128,7 +128,7 @@ class YumiArm(object):
         self._robot = URDF.from_parameter_server(key=robot_description)
         self._kdl_tree = kdl_tree_from_urdf_model(self._robot)
         self._base_link = self._robot.get_root()
-        self._ee_link = 'gripper_' +self._arm_name + '_base' #name of the frame we want 
+        self._ee_link = 'gripper_' +self._arm_name + '_base' #name of the frame we want
         self._ee_frame = PyKDL.Frame()
         self._ee_arm_chain = self._kdl_tree.getChain(self._base_link, self._ee_link)
         # KDL Solvers
@@ -166,9 +166,9 @@ class YumiArm(object):
             if not kinematic_chain_order:
                 idx = self.redefine_index(idx)
             err += abs(positions[i] - self._joint_positions[idx])
-        if abs(err) < 7 * self._joint_threshold: 
+        if abs(err) < 7 * self._joint_threshold:
             self.stop()
-            return
+            return True
         #iterate through all the joints
         t0 = rospy.Time.now().to_sec()
         t = rospy.Time.now().to_sec() - t0
@@ -187,11 +187,14 @@ class YumiArm(object):
             if t >= timeout:
                 rospy.logwarn('Timeout exceeded before reaching target postion')
                 self.stop()
+                return False
             else:
                 rospy.loginfo('Reached desired joint positions')
+                return True
         else:
             for i, p in enumerate(positions):
                 self.set_joint_position(i + 1, p, not kinematic_chain_order, False)
+            return True
 
     """this function moves one joint to the desired position"""
     def set_joint_position(self, idx, position, redefine_idx = True, iterate = True, timeout = 20.0):
@@ -202,7 +205,7 @@ class YumiArm(object):
             #here convert idx back (only for printouts)
         err = position - self._joint_positions[i]
         #check if the error is small enough (check what tolerance can be used for better precision)
-        if abs(err) < self._joint_threshold: 
+        if abs(err) < self._joint_threshold:
             self.stop_joint(i, False)
             return
         #use a p controller for now
@@ -210,7 +213,7 @@ class YumiArm(object):
             t0 = rospy.Time.now().to_sec()
             t = rospy.Time.now().to_sec() - t0
             while abs(err) > self._joint_threshold and t < timeout:
-                vel = self._vel_KP * err 
+                vel = self._vel_KP * err
                 self.set_joint_velocity(i, vel, False)
                 self._rate.sleep()
                 t = rospy.Time.now().to_sec() - t0
@@ -305,7 +308,7 @@ class YumiArm(object):
             J_sub_pinv = np.linalg.pinv(J_sub)
             q_dot = J_sub_pinv.dot(vel)
         else:
-            #assume the velocity has 6 elements 
+            #assume the velocity has 6 elements
             J_pinv = np.linalg.pinv(J)
             q_dot = J_pinv.dot(vel)
 
@@ -384,8 +387,3 @@ class YumiArm(object):
     """this function returns the distance of the gripper's fingers"""
     def get_finger_distance(self):
         return self._gripper_position
-
-
-
-
-        
