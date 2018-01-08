@@ -8,7 +8,10 @@
 """
 
 import sys
-sys.path.insert(0, '../src/yumi_interface')
+import rospy
+import rospkg
+
+sys.path.insert(0, rospkg.RosPack.get_path(rospkg.RosPack(), 'yumi_interface') + '/src/yumi_interface')
 import rospy
 import rospkg
 import actionlib
@@ -29,17 +32,17 @@ class MoveAction(object):
         self._result = yumi_interface.msg.MoveResult()
 
         self._tf_listener = tf.TransformListener()
-        self._base_frame = rospy.get_param('/yumi/base_frame', False)
+        self._base_frame = rospy.get_param('~base_frame', False)
 
         if not self._base_frame:
-            rospy.logerr("%s: /yumi/base_frame not defined!", name)
-            raise Exception('Missing base paremeter from MoveAction class')
+            rospy.logerr("%s: base_frame not defined!", name)
+            raise Exception('Missing base parameter from MoveAction class')
 
         #manipulation interface
         self._manipulation_interface = dict()
-        self._joint_threshold = rospy.get_param(name +'/joint_threshold', 0.05)
-        self._joint_movement_threshold = rospy.get_param(name +'/joint_movement_threshold', 0.05)
-        self._joint_stop_threshold = rospy.get_param(name +'/joint_stop_threshold', 0.005)
+        self._joint_threshold = rospy.get_param('~joint_threshold', 0.05)
+        self._joint_movement_threshold = rospy.get_param('~joint_movement_threshold', 0.05)
+        self._joint_stop_threshold = rospy.get_param('~joint_stop_threshold', 0.005)
 
         for arm in arms:
             self._manipulation_interface[arm] = YumiArm(arm)
@@ -85,6 +88,7 @@ class MoveAction(object):
             target_joints = goal.joint_target
 
         success = self._manipulation_interface[arm].set_joint_positions(target_joints)  # TODO: make preemptable
+        self._manipulation_interface[arm].set_joint_velocities([0., 0., 0., 0., 0., 0., 0.])  # TODO: make preemptable
 
         if not success:
             self._result.status = self._result.FAIL_TO_REACH_JOINT_TARGET
