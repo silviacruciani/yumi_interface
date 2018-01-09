@@ -1,0 +1,8 @@
+<launch>
+  <node name="move_server" pkg="yumi_interface" type="move_server.py" output="screen">
+    <param name="base_frame" value="yumi_base_link"/>
+  </node>
+
+  <!-- <node name="push_server" pkg="yumi_interface" type="push_server.py" output="screen"/>
+  <node name="rotate_server" pkg="yumi_interface" type="rotate_server.py" output="screen"/> -->
+</launch>

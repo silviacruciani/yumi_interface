@@ -1,0 +1,18 @@
+
+#goal definition
+string arm #arm name for baxter (right or left)
+bool use_pose_target
+float64[] joint_target
+geometry_msgs/PoseStamped cartesian_target
+
+string RIGHT_ARM = right
+string LEFT_ARM = left
+---
+#result definition
+int32 status
+int32 NO_IK_SOLUTION = -1
+int32 FAIL_TO_REACH_JOINT_TARGET = -2
+int32 INVALID_GOAL = -3
+---
+#feedback
+int32 status
