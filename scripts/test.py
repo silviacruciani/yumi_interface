@@ -22,6 +22,12 @@ if __name__ == '__main__':
     right_arm.move_ee_to_pose(pose)
     print ("reached: ", right_arm.get_forward_position_kinematics())
     rospy.sleep(2.0)
+    print ("setting an effort of 18 on the gripper")
+    right_arm.set_gripper_effort(18)
+    rospy.sleep(2.0)
+    print ("setting an effort of -10")
+    right_arm.set_gripper_effort(-10)
+    rospy.sleep(2.0)
     print("Setting horizontal linear velocity")
     r = rospy.Rate(100)
     for i in range(0, 100):

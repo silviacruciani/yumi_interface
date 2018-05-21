@@ -13,7 +13,7 @@ import PyKDL
 from kdl_parser import kdl_tree_from_urdf_model
 from urdf_parser_py.urdf import URDF
 import numpy as np
-from yumi_hw.srv import * #using this for grasping
+from yumi_hw.srv import *
 
 class YumiArm(object):
     """docstring for YumiArm"""
@@ -43,6 +43,8 @@ class YumiArm(object):
         self._open_service = rospy.ServiceProxy(self._open_service_name, YumiGrasp)
         self._close_service = rospy.ServiceProxy(self._close_service_name, YumiGrasp)
 
+        #set the ros topic for publishing the gripper's effort
+        self._gripper_effort_publisher = rospy.Publisher("/yumi/gripper_"+ self._arm_name + "_effort_cmd", Float64, queue_size=1)
 
         #and the variables for the current position and gripper id
         self._gripper_position = 0.0 #in meters
@@ -387,3 +389,7 @@ class YumiArm(object):
     """this function returns the distance of the gripper's fingers"""
     def get_finger_distance(self):
         return self._gripper_position
+
+    """this function sets the desired effort for the gripper's fingers. Effort should be in [-20, 20]"""
+    def set_gripper_effort(self, effort):
+        self._gripper_effort_publisher.publish(effort)
