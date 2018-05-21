@@ -8,10 +8,7 @@
 
 import rospy
 
-import sys
-sys.path.insert(0, '../src/yumi_interface')
-
-from yumi_arm_interface import YumiArm
+from yumi_interface.yumi_arm_interface import YumiArm
 
 if __name__ == '__main__':
     rospy.init_node('yumi_interface_test')
