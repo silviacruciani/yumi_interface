@@ -48,6 +48,7 @@ class YumiArm(object):
 
         #and the variables for the current position and gripper id
         self._gripper_position = 0.0 #in meters
+        self._gripper_effort = 0.0 #the problem is that at the beginning I don't know what this actually is
         self._gripper_id = 1
         if self._arm_name == 'r':
             self._gripper_id = 2
@@ -404,4 +405,10 @@ class YumiArm(object):
 
     """this function sets the desired effort for the gripper's fingers. Effort should be in [-20, 20]"""
     def set_gripper_effort(self, effort):
+        self._gripper_effort = effort
         self._gripper_effort_publisher.publish(effort)
+
+    """this function returns the current effort of the gripper. Not coming from real feedback for now"""
+    def get_gripper_effort(self):
+        return self._gripper_effort
+
