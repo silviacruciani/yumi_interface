@@ -81,6 +81,11 @@ class YumiArm(object):
         #initialize the ros subsciber to keep track of the current joint state
         self._ros_topic_joint_states = rospy.get_param('/yumi/velocity_control/ros_topic_joint_states_name', '/yumi/joint_states')
         self._subscriber = rospy.Subscriber(self._ros_topic_joint_states, JointState, self.joint_state_callback)
+        #and of the current gripper state
+        self._ros_topic_gripper_states = rospy.get_param('/yumi/velocity_control/ros_topic_gripper_states_name', '/yumi/gripper_states')
+        self._subscriber_gr = rospy.Subscriber(self._ros_topic_gripper_states, JointState, self.gripper_state_callback)
+
+
 
     """this function sets the joint threshold"""
     def set_joint_position_threshold(self, th):
@@ -153,11 +158,18 @@ class YumiArm(object):
                 index = self.redefine_index(idx) #put the joint positions according to the order in the kinematic chain
                 self._joint_positions[index] = positions[i]
                 self._joint_velocities[index] = velocities[i]
-            #check if it is the gripper variable
-            elif s[8] == self._arm_name:
-                self._gripper_position = positions[i]
         #update the forward kinematics
         self.update_ee_state(self._joint_positions, self._joint_velocities)
+
+    """this function reads the state of the grippers"""
+    def gripper_state_callback(self, data):
+        names = data.name
+        positions = data.position
+        #missing effort. waiting for ros topic publication to be fixed
+        for i, s in enumerate(names):
+            if s[8] == self._arm_name:
+                self._gripper_position = positions[i]
+
 
     """this function moves joints to a desired position"""
     def set_joint_positions(self, positions, kinematic_chain_order = True, iterate = True, timeout = 20.0):
