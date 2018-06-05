@@ -14,6 +14,7 @@ from kdl_parser import kdl_tree_from_urdf_model
 from urdf_parser_py.urdf import URDF
 import numpy as np
 from yumi_hw.srv import *
+import subprocess
 
 class YumiArm(object):
     """docstring for YumiArm"""
@@ -218,6 +219,10 @@ class YumiArm(object):
         else:
             i = idx
             #here convert idx back (only for printouts)
+        #check for wrong indices:
+        if i<0 or i>6:
+            rospy.logerr("Wrong index: cannot send the desired joint command. Setting joint: " + str(idx))
+            return
         err = position - self._joint_positions[i]
         #check if the error is small enough (check what tolerance can be used for better precision)
         if abs(err) < self._joint_threshold:
@@ -258,6 +263,10 @@ class YumiArm(object):
     def set_joint_velocity(self, idx, vel, redefine_idx = True):
         if redefine_idx:
             idx = self.redefine_index(idx)
+        #check for wrong indices:
+        if idx<0 or idx>6:
+            rospy.logerr("Wrong index: cannot send the desired joint command. Setting joint: " + str(idx))
+            return
         self._publishers[idx].publish(vel)
 
     """this function returns the current joint positions"""
@@ -284,7 +293,11 @@ class YumiArm(object):
     def get_inverse_kinematics(self, pose):
         #check pose of end effector
         pos = PyKDL.Vector(pose[0], pose[1], pose[2])
-        rot = PyKDL.Rotation().Quaternion(pose[3], pose[4], pose[5], pose[6])
+        rot = None
+        if len(pose) == 7:
+            rot = PyKDL.Rotation().Quaternion(pose[3], pose[4], pose[5], pose[6])
+        else:
+            rot = PyKDL.Rotation().RPY(pose[3], pose[4], pose[5])
         seed_array = PyKDL.JntArray(len(self._joint_positions))
 
         for idx, val in enumerate(self._joint_positions):
@@ -411,4 +424,21 @@ class YumiArm(object):
     """this function returns the current effort of the gripper. Not coming from real feedback for now"""
     def get_gripper_effort(self):
         return self._gripper_effort
+
+
+    """this function opens or closes the gripper at the desired position"""
+    def set_finger_distance(self, distance, iterate=True, timeout=1.0):
+        error = distance - self._gripper_position
+        #just simple proportional controller for now
+        cmd = - 40*error
+        self.set_gripper_effort(cmd)
+        if(iterate):
+            t0 = rospy.Time.now().to_sec()
+            t = rospy.Time.now().to_sec() - t0
+            while t < timeout and abs(error) > 0.0001:
+                error = distance - self._gripper_position
+                cmd = - 40*error
+                print ("cmd: ", cmd)
+                self.set_gripper_effort(cmd)
+                t = rospy.Time.now().to_sec() - t0
 
