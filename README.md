@@ -1,6 +1,11 @@
 # yumi_interface
 
 This ros package contains a python interface to an arm the yumi robot using the velocity control mode.
+<br />
+It uses this [yumi](https://github.com/kth-ros-pkg/yumi) package to communicate with the robot or the simulation.
+<br />
+It requires PyKDL.
+
 The joints are stored in the order of the kinematic chain, but it does not change the naming convention.
 The inputs can follow this ordering or the default numbering, and a bool variable indicates what convention to follow when a method is called.
 
