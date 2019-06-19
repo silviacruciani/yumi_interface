@@ -18,12 +18,14 @@ import subprocess
 
 class YumiArm(object):
     """docstring for YumiArm"""
-    def __init__(self, arm_name):
+    def __init__(self, arm_name, base_link='yumi_base_link'):
         #read the desired arm (right or left)
         self._arm_name = arm_name[0]
         if self._arm_name != 'r' and self._arm_name !='l':
             rospy.logwarn("Wrong arm name input. Using default: right")
             self._arm_name = 'r'
+
+        self._base_link = base_link
 
         #initialize the ros topic publishers
         self._ros_topic_namespace = rospy.get_param('/yumi/velocity_control/ros_topic_command_name', '/yumi/joint_vel_controller_')
@@ -71,7 +73,7 @@ class YumiArm(object):
         self._rate = rospy.Rate(200) #the states are published at 500
         self._ee_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
         self._ee_twist = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self._vel_KP = 0.2 #keep it low or the robot will block because it exceeds the force
+        self._vel_KP = 0.5 #keep it low or the robot will block because it exceeds the force
         self._joint_threshold = 0.01
 
         #initialize the kinematic solvers
@@ -136,7 +138,7 @@ class YumiArm(object):
         robot_description = rospy.get_param('/yumi/velocity_control/robot_description', '/robot_description')
         self._robot = URDF.from_parameter_server(key=robot_description)
         self._kdl_tree = kdl_tree_from_urdf_model(self._robot)
-        self._base_link = self._robot.get_root()
+        # self._base_link = self._robot.get_root()
         self._ee_link = 'gripper_' +self._arm_name + '_base' #name of the frame we want
         self._ee_frame = PyKDL.Frame()
         self._ee_arm_chain = self._kdl_tree.getChain(self._base_link, self._ee_link)
